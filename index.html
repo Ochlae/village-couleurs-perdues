@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Village des Couleurs Perdues - Le Petit Port</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: white;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 980px;
+  padding: 12px;
+}
+
+h1 {
+  text-align: center;
+  margin: 10px 0 4px;
+  color: #ffb347;
+  font-size: 28px;
+}
+
+#subtitle {
+  text-align: center;
+  margin: 0 0 12px;
+  color: #ddd;
+  font-size: 15px;
+}
+
+#gameFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: 0 0 35px rgba(255, 130, 30, 0.35);
+  background: #222;
+}
+
+#painting {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(100%) brightness(0.78) contrast(1.08);
+  transition: filter 1.2s ease;
+}
+
+#painting.awake1 {
+  filter: grayscale(70%) brightness(0.88) contrast(1.08);
+}
+
+#painting.awake2 {
+  filter: grayscale(40%) brightness(0.98) contrast(1.08);
+}
+
+#painting.awake3 {
+  filter: grayscale(15%) brightness(1.05) contrast(1.08);
+}
+
+#painting.awakeFinal {
+  filter: grayscale(0%) brightness(1.08) contrast(1.06) saturate(1.18);
+}
+
+.zone {
+  position: absolute;
+  border: 2px solid rgba(255, 255, 255, 0);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.zone:hover {
+  border-color: rgba(255, 214, 102, 0.8);
+  background: rgba(255, 200, 0, 0.12);
+  box-shadow: 0 0 20px rgba(255, 214, 102, 0.8);
+}
+
+.zone.found {
+  pointer-events: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.10);
+}
+
+#messageBox {
+  margin-top: 12px;
+  padding: 14px;
+  background: rgba(0,0,0,0.72);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  min-height: 74px;
+  text-align: center;
+  font-size: 18px;
+}
+
+#scoreLine {
+  margin-top: 8px;
+  text-align: center;
+  color: #ffdc8a;
+  font-size: 16px;
+}
+
+#colorsFound {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.colorBadge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  font-size: 14px;
+}
+
+button {
+  display: block;
+  margin: 14px auto 0;
+  padding: 12px 18px;
+  font-size: 17px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: #ff8c1a;
+  color: white;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #ffc04d;
+  color: #222;
+}
+
+.effectText {
+  position: absolute;
+  color: #fff4c2;
+  font-weight: bold;
+  font-size: clamp(16px, 3vw, 28px);
+  text-shadow: 0 0 10px black;
+  animation: rise 1.6s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes rise {
+  0% { opacity: 0; transform: translateY(15px) scale(0.9); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-55px) scale(1.15); }
+}
+
+#sunGlow {
+  position: absolute;
+  left: 11%;
+  top: 6%;
+  width: 22%;
+  height: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,180,30,0.8), rgba(255,95,0,0.25), transparent 70%);
+  opacity: 0;
+  transition: opacity 1s ease;
+  pointer-events: none;
+}
+
+#sunGlow.active {
+  opacity: 1;
+}
+
+#lighthouseBeam {
+  position: absolute;
+  left: 69%;
+  top: 9%;
+  width: 38%;
+  height: 18%;
+  background: linear-gradient(90deg, rgba(255,255,210,0.45), transparent);
+  clip-path: polygon(0 40%, 100% 0, 100% 100%, 0 60%);
+  opacity: 0;
+  transform-origin: left center;
+  animation: beamMove 3s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+#lighthouseBeam.active {
+  opacity: 1;
+}
+
+@keyframes beamMove {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(5deg); }
+}
+
+#wave {
+  position: absolute;
+  left: 0;
+  bottom: 1%;
+  width: 100%;
+  height: 9%;
+  background: linear-gradient(180deg, transparent, rgba(0,40,150,0.50));
+  opacity: 0;
+  animation: waveMove 2.5s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+#wave.active {
+  opacity: 1;
+}
+
+@keyframes waveMove {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+
+#birds {
+  position: absolute;
+  top: 18%;
+  left: 48%;
+  color: #1a1a1a;
+  font-size: clamp(22px, 4vw, 42px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#birds.active {
+  opacity: 1;
+  animation: fly 5s linear infinite;
+}
+
+@keyframes fly {
+  from { transform: translateX(0); }
+  to { transform: translateX(120px); }
+}
+
+.windowLight {
+  position: absolute;
+  background: rgba(255, 215, 85, 0.85);
+  box-shadow: 0 0 14px rgba(255, 215, 85, 0.9);
+  border-radius: 3px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.windowLight.active {
+  opacity: 1;
+}
+
+#light1 { left: 78%; top: 54%; width: 4%; height: 5%; }
+#light2 { left: 53.5%; top: 31%; width: 2%; height: 2.5%; }
+#light3 { left: 64%; top: 66%; width: 4%; height: 5%; }
+
+/* Zones approximatives sur le tableau */
+#zoneSun { left: 12%; top: 6%; width: 20%; height: 20%; }
+#zoneLighthouse { left: 72%; top: 7%; width: 15%; height: 40%; border-radius: 16px; }
+#zoneBoat { left: 15%; top: 69%; width: 42%; height: 22%; border-radius: 45%; }
+#zoneHouse { left: 37%; top: 23%; width: 24%; height: 19%; border-radius: 12px; }
+#zoneWindow { left: 76%; top: 53%; width: 9%; height: 8%; border-radius: 10px; }
+#zoneAntenna { left: 44%; top: 6%; width: 22%; height: 18%; border-radius: 12px; }
+
+@media (max-width: 600px) {
+  h1 { font-size: 22px; }
+  #messageBox { font-size: 16px; }
+}
+</style>
+</head>
+
+<body>
+<div id="app">
+  <h1>Village des Couleurs Perdues</h1>
+  <p id="subtitle">D'après « Le petit port » — Claude Grand</p>
+
+  <div id="gameFrame">
+    <!-- IMPORTANT : mets ton image dans le même dossier que ce fichier et nomme-la petit-port.png -->
+    <img id="painting" src="petit-port.png" alt="Le petit port de Claude Grand">
+
+    <div id="sunGlow"></div>
+    <div id="lighthouseBeam"></div>
+    <div id="wave"></div>
+    <div id="birds">⌁ ︿ ︿ ︿</div>
+
+    <div id="light1" class="windowLight"></div>
+    <div id="light2" class="windowLight"></div>
+    <div id="light3" class="windowLight"></div>
+
+    <div class="zone" id="zoneSun" data-name="Le grand soleil" data-color="🟠 Orange" data-message="Le soleil se souvient de sa lumière."></div>
+    <div class="zone" id="zoneLighthouse" data-name="Le phare" data-color="🔴 Rouge" data-message="Le phare rallume son appel rouge et blanc."></div>
+    <div class="zone" id="zoneBoat" data-name="Le bateau" data-color="🔵 Bleu" data-message="Le bateau réveille la mer profonde."></div>
+    <div class="zone" id="zoneHouse" data-name="La maison centrale" data-color="⚪ Blanc" data-message="La maison centrale retrouve sa mémoire claire."></div>
+    <div class="zone" id="zoneWindow" data-name="La fenêtre secrète" data-color="🟡 Jaune" data-message="Une fenêtre cachée s'ouvre comme un œil d'or."></div>
+    <div class="zone" id="zoneAntenna" data-name="L'antenne du vent" data-color="🌬️ Vent" data-message="Le vent traverse les toits et réveille les nuages."></div>
+  </div>
+
+  <div id="messageBox">Le petit port dort encore. Clique sur le tableau pour réveiller ses couleurs.</div>
+  <div id="scoreLine">Couleurs retrouvées : <span id="score">0</span> / 6</div>
+  <div id="colorsFound"></div>
+  <button onclick="restartGame()">Recommencer</button>
+</div>
+
+<script>
+let found = [];
+const total = 6;
+
+const painting = document.getElementById("painting");
+const messageBox = document.getElementById("messageBox");
+const score = document.getElementById("score");
+const colorsFound = document.getElementById("colorsFound");
+
+const zones = document.querySelectorAll(".zone");
+
+zones.forEach(zone => {
+  zone.addEventListener("click", () => activateZone(zone));
+});
+
+function activateZone(zone) {
+  if (zone.classList.contains("found")) return;
+
+  zone.classList.add("found");
+
+  const name = zone.dataset.name;
+  const color = zone.dataset.color;
+  const message = zone.dataset.message;
+
+  found.push({ name, color });
+
+  messageBox.innerHTML = `<strong>${name}</strong><br>${message}`;
+  score.textContent = found.length;
+
+  addColorBadge(color);
+  showFloatingText(zone, color);
+  applyEffect(zone.id);
+  updatePaintingColor();
+  checkCombinations();
+
+  if (found.length === total) {
+    setTimeout(finalVictory, 900);
+  }
+}
+
+function addColorBadge(color) {
+  const badge = document.createElement("div");
+  badge.className = "colorBadge";
+  badge.textContent = color;
+  colorsFound.appendChild(badge);
+}
+
+function showFloatingText(zone, text) {
+  const frame = document.getElementById("gameFrame");
+  const effect = document.createElement("div");
+  effect.className = "effectText";
+  effect.textContent = text;
+
+  const x = zone.offsetLeft + zone.offsetWidth / 2;
+  const y = zone.offsetTop + zone.offsetHeight / 2;
+
+  effect.style.left = x + "px";
+  effect.style.top = y + "px";
+  effect.style.transform = "translate(-50%, -50%)";
+
+  frame.appendChild(effect);
+
+  setTimeout(() => effect.remove(), 1700);
+}
+
+function applyEffect(id) {
+  if (id === "zoneSun") {
+    document.getElementById("sunGlow").classList.add("active");
+  }
+
+  if (id === "zoneLighthouse") {
+    document.getElementById("lighthouseBeam").classList.add("active");
+  }
+
+  if (id === "zoneBoat") {
+    document.getElementById("wave").classList.add("active");
+  }
+
+  if (id === "zoneHouse") {
+    document.getElementById("light2").classList.add("active");
+  }
+
+  if (id === "zoneWindow") {
+    document.getElementById("light1").classList.add("active");
+    document.getElementById("light3").classList.add("active");
+  }
+}
+
+function updatePaintingColor() {
+  painting.classList.remove("awake1", "awake2", "awake3", "awakeFinal");
+
+  if (found.length >= 1) painting.classList.add("awake1");
+  if (found.length >= 3) painting.classList.add("awake2");
+  if (found.length >= 5) painting.classList.add("awake3");
+}
+
+function hasColor(colorText) {
+  return found.some(item => item.color.includes(colorText));
+}
+
+function checkCombinations() {
+  if (hasColor("Orange") && hasColor("Bleu")) {
+    document.getElementById("birds").classList.add("active");
+  }
+
+  if (hasColor("Rouge") && hasColor("Blanc")) {
+    document.getElementById("light1").classList.add("active");
+    document.getElementById("light2").classList.add("active");
+  }
+}
+
+function finalVictory() {
+  painting.classList.remove("awake1", "awake2", "awake3");
+  painting.classList.add("awakeFinal");
+
+  messageBox.innerHTML = `
+    <strong>Le petit port est réveillé.</strong><br>
+    Les couleurs n'étaient jamais parties.<br>
+    Elles attendaient simplement un regard.
+  `;
+}
+
+function restartGame() {
+  found = [];
+  score.textContent = "0";
+  colorsFound.innerHTML = "";
+  messageBox.textContent = "Le petit port dort encore. Clique sur le tableau pour réveiller ses couleurs.";
+
+  painting.classList.remove("awake1", "awake2", "awake3", "awakeFinal");
+
+  document.querySelectorAll(".zone").forEach(zone => zone.classList.remove("found"));
+  document.querySelectorAll(".windowLight").forEach(light => light.classList.remove("active"));
+
+  document.getElementById("sunGlow").classList.remove("active");
+  document.getElementById("lighthouseBeam").classList.remove("active");
+  document.getElementById("wave").classList.remove("active");
+  document.getElementById("birds").classList.remove("active");
+}
+</script>
+</body>
+</html>
